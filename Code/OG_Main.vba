@@ -1,3 +1,12 @@
+'
+'   Author: Zachary Clark-Williams
+'   Date Last Edited: 08/30/2017
+'   
+'   Voltage Drop Calculator
+'   
+'   ** To run properly you will need the userform Conduitconductor.vba
+'
+
 
 '-------------------------------------------------------------------------------------'
 '------------Enter New Row Of Data And Calculations To Votlage Drop Table-------------'

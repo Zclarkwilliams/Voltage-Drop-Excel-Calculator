@@ -9,7 +9,6 @@
 ' ** To run properly you will need the User_Info_Panel.vba code from userform file
 '
 
-
 Private Sub CalculateVoltageDrop_Click()
 
 '*************************************************************************************'
@@ -74,34 +73,37 @@ KW = User_Info_Panel.PwrFctr * KVA
 '*************************************************************************************'
 '                           Place Values in Appropriate Columns                       '
 '*************************************************************************************'
-'****Get Row to print data to
-On Error Resume Next
-LastRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="Total", LookAt:=xlPart, LookIn:=xlFormulas, SearchOrder:=xlByRows, SearchDirection:=xlPrevious, MatchCase:=False).Row
-If LastRow <> 0 Then
-    Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearContents
-    Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearFormats
-End If
-Sheets("Voltage Drop Calculator").Range("A4:L600").NumberFormat = Text
-iRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="*", _
-                                            LookAt:=xlPart, _
-                                            LookIn:=xlValues, _
-                                            SearchOrder:=xlByRows, _
-                                            SearchDirection:=xlPrevious, _
-                                            MatchCase:=False).Row + 1
-Sheets("Voltage Drop Calculator").Cells(iRow, 1) = User_Info_Panel.DevDesc
-Sheets("Voltage Drop Calculator").Cells(iRow, 2) = User_Info_Panel.Amperes
-Sheets("Voltage Drop Calculator").Cells(iRow, 3) = Round(KVA, 3)
-Sheets("Voltage Drop Calculator").Cells(iRow, 4) = Round(User_Info_Panel.PwrFctr, 3)
-Sheets("Voltage Drop Calculator").Cells(iRow, 5) = Round(KW, 3)
-Sheets("Voltage Drop Calculator").Cells(iRow, 6) = "'" & User_Info_Panel.WireGauge
-Sheets("Voltage Drop Calculator").Cells(iRow, 7) = User_Info_Panel.PhaseNum
-Sheets("Voltage Drop Calculator").Cells(iRow, 8) = Round(User_Info_Panel.CableLen, 5)
-Sheets("Voltage Drop Calculator").Cells(iRow, 9) = Round(Zeff, 5)
-Sheets("Voltage Drop Calculator").Cells(iRow, 10) = Round(VoltDrop, 3)
-Sheets("Voltage Drop Calculator").Cells(iRow, 11) = Round(VoltDropPerc, 3)
-Sheets("Voltage Drop Calculator").Cells(iRow, 12) = User_Info_Panel.VoltSupply
-Sheets("Voltage Drop Calculator").Cells(iRow, 13) = User_Info_Panel.ConductType
-Sheets("Voltage Drop Calculator").Cells(iRow, 14) = User_Info_Panel.ConduitType
+
+'UpdateTable(User_Info_Panel.DevDesc, User_Info_Panel.WireGauge, CndctrType, ConduitType, Amp, KVA, PF, KW, Phase, CblLen, Zeff, VoltageDrop, VoltageDropPerc, VoltSupp)
+
+    '****Get Row to print data to
+    On Error Resume Next
+    LastRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="Total", LookAt:=xlPart, LookIn:=xlFormulas, SearchOrder:=xlByRows, SearchDirection:=xlPrevious, MatchCase:=False).Row
+    If LastRow <> 0 Then
+        Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearContents
+        Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearFormats
+    End If
+    Sheets("Voltage Drop Calculator").Range("A4:L600").NumberFormat = Text
+    iRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="*", _
+                                                LookAt:=xlPart, _
+                                                LookIn:=xlValues, _
+                                                SearchOrder:=xlByRows, _
+                                                SearchDirection:=xlPrevious, _
+                                                MatchCase:=False).Row + 1
+    Sheets("Voltage Drop Calculator").Cells(iRow, 1) = User_Info_Panel.DevDesc
+    Sheets("Voltage Drop Calculator").Cells(iRow, 2) = User_Info_Panel.Amperes
+    Sheets("Voltage Drop Calculator").Cells(iRow, 3) = Round(KVA, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 4) = Round(User_Info_Panel.PwrFctr, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 5) = Round(KW, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 6) = "'" & User_Info_Panel.WireGauge
+    Sheets("Voltage Drop Calculator").Cells(iRow, 7) = User_Info_Panel.PhaseNum
+    Sheets("Voltage Drop Calculator").Cells(iRow, 8) = Round(User_Info_Panel.CableLen, 5)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 9) = Round(Zeff, 5)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 10) = Round(VoltageDrop, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 11) = Round(VoltageDropPerc, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 12) = VoltSupp
+    Sheets("Voltage Drop Calculator").Cells(iRow, 13) = User_Info_Panel.ConductorType
+    Sheets("Voltage Drop Calculator").Cells(iRow, 14) = User_Info_Panel.ConduitType
 
 '*************************************************************************************'
 '  Professionalize That Row Look With Borders and Centering And Adjust Column Width   '
@@ -125,7 +127,7 @@ Sheets("Voltage Drop Calculator").Range("A1:N600").HorizontalAlignment = xlCente
 TotalTableValues
 
 '*************************************************************************************'
-'  Professionalize That Row Look With Borders and Centering And Adjust Column Width   '
+'           Set the Conduit and Conductors as Drop Down Lists for EOU                 '
 '*************************************************************************************'
 
 Dim WireType, PipeType, WireList, PipeList As Variant
@@ -343,11 +345,63 @@ Function CheckIfNum(ByVal NumCheck As Variant) As Boolean
 End Function
 
 '-------------------------------------------------------------------------------------'
+'             This Function Will Place Passed Values into the Display Tables          '
+'-------------------------------------------------------------------------------------'
+
+Function UpdateTable(ByRef DevDescr, Gauge, CndctrType, ConduitType As String, Amp, KVA, _
+                     PF, KW, Phase, CblLen, Zeff, VoltageDrop, VoltageDropPerc, VoltSupp As Double)
+
+    '****Get Row to print data to
+    On Error Resume Next
+    LastRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="Total", LookAt:=xlPart, LookIn:=xlFormulas, SearchOrder:=xlByRows, SearchDirection:=xlPrevious, MatchCase:=False).Row
+    If LastRow <> 0 Then
+        Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearContents
+        Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearFormats
+    End If
+    Sheets("Voltage Drop Calculator").Range("A4:L600").NumberFormat = Text
+    iRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="*", _
+                                                LookAt:=xlPart, _
+                                                LookIn:=xlValues, _
+                                                SearchOrder:=xlByRows, _
+                                                SearchDirection:=xlPrevious, _
+                                                MatchCase:=False).Row + 1
+    Sheets("Voltage Drop Calculator").Cells(iRow, 1) = DevDescr
+    Sheets("Voltage Drop Calculator").Cells(iRow, 2) = User_Info_Panel.Amperes
+    Sheets("Voltage Drop Calculator").Cells(iRow, 3) = Round(KVA, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 4) = Round(PF, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 5) = Round(KW, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 6) = "'" & Gauge
+    Sheets("Voltage Drop Calculator").Cells(iRow, 7) = Phase
+    Sheets("Voltage Drop Calculator").Cells(iRow, 8) = Round(CblLen, 5)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 9) = Round(Zeff, 5)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 10) = Round(VoltageDrop, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 11) = Round(VoltageDropPerc, 3)
+    Sheets("Voltage Drop Calculator").Cells(iRow, 12) = VoltSupp
+    Sheets("Voltage Drop Calculator").Cells(iRow, 13) = CndctrType
+    Sheets("Voltage Drop Calculator").Cells(iRow, 14) = ConduitType
+
+End Function
+
+'-------------------------------------------------------------------------------------'
 '  This Function Will Take a Variant Input and Output A True or False if Its Number   '
 '-------------------------------------------------------------------------------------'
 
-'Private Sub Worksheet_Change(ByVal Target As Range)
-'    If Target.Columns = Range("M:N").Columns Then
-'
-'    End If
-'End Sub
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Select Case Target.Columns
+        Case "A":   '   Device Description - Do Nothing
+        Case "B":   '   Current Change - Re-Calculate and Update Table
+            
+        Case "C":   '   KVA Change - ?? This should not happen. Post Err ??
+        Case "D":   '   Power Factor Change - Re-Calculate and Update Table
+        Case "E":   '   KW Change - ?? This should not happen. Post Err ??
+        Case "F":   '   Wire Guage Size - Validate Input and Re-Calculate and Update Table
+        Case "G":   '   Phase Number Change - Re-Calculate and Update Table
+        Case "H":   '   Cable Length Change - Re-Calculate and Update Table
+        Case "I":   '   Zeff Change - ?? This should not happen. Post Err ??
+        Case "J":   '   Calculated Voltage Drop Change ?? This should not happen. Post Err ??
+        Case "K":   '   Calculated Voltage Drop % Change ?? This should not happen. Post Err ??
+        Case "L":   '   Supply Voltage Change - Re-Calculate and Update Table
+        Case "M":   '   Conductor Change - Re-Calculate and Update Table
+        Case "N":   '   Conduit Change - Re-Calculate and Update Table
+    End Select
+End Sub

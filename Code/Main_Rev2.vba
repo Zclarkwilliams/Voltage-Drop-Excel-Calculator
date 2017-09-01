@@ -387,10 +387,12 @@ End Function
 '-------------------------------------------------------------------------------------'
 
 Private Sub Worksheet_Change(ByVal Target As Range)
-    Select Case Target.Columns
-        Case "A":   '   Device Description - Do Nothing
-        Case "B":   '   Current Change - Re-Calculate and Update Table
-            
+Dim ColChanged As String
+    Target.Address
+    Select Case ColChanged
+        Case 1:   '   Device Description - Do Nothing
+        Case 2:   '   Current Change - Re-Calculate and Update Table
+            MsgBox ("Changed Current")
         Case "C":   '   KVA Change - ?? This should not happen. Post Err ??
         Case "D":   '   Power Factor Change - Re-Calculate and Update Table
         Case "E":   '   KW Change - ?? This should not happen. Post Err ??

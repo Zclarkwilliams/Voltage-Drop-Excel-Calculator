@@ -1,6 +1,6 @@
 '
 ' Author: Zachary Clark-Williams
-' Last Edited: 08-31-2017
+' Last Edited: 09-06-2017
 '
 ' Excel Voltage Drop Calculator
 '
@@ -9,7 +9,11 @@
 ' ** To run properly you will need the User_Info_Panel.vba code from userform file
 '
 
+
 Private Sub CalculateVoltageDrop_Click()
+
+Dim iRow As Long
+Dim RandXl As Collection
 
 '*************************************************************************************'
 '                 Set the Column Headers Last to AutoFit All Data Entered             '
@@ -28,34 +32,10 @@ User_Info_Panel.Show vbModal
 '                                Voltage Drop Equations                               '
 '*************************************************************************************'
 '****Get AC Resistance and Inductive Reactiance From NEC 2017 Table 9
-Select Case User_Info_Panel.ConduitType
-    Case "PVC":         'Use PVC Column From Table 9
-        Set ReactRange = Sheets("Table 9").Range("B7:B27")
-        If User_Info_Panel.ConductType = "Copper" Then
-            Set ResRange = Sheets("Table 9").Range("D7:D27")
-        Else: Set ResRange = Sheets("Table 9").Range("G7:G27")
-        End If
-    Case "Aluminum":    'Use Aluminum Column From Table 9
-        Set ReactRange = Sheets("Table 9").Range("B7:B27")
-        If User_Info_Panel.ConductType = "Copper" Then
-            Set ResRange = Sheets("Table 9").Range("E7:E27")
-        Else: Set ResRange = Sheets("Table 9").Range("H7:H27")
-        End If
-    Case "Steel":       'Use Steel Column From Table 9
-        Set ReactRange = Sheets("Table 9").Range("C7:C27")
-        If User_Info_Panel.ConductType = "Copper" Then
-            Set ResRange = Sheets("Table 9").Range("F7:F27")
-        Else: Set ResRange = Sheets("Table 9").Range("I7:I27")
-        End If
-End Select
+Set RandXl = GetXlandR(User_Info_Panel.ConduitType, User_Info_Panel.ConductType)
+ACRes = RandXRange.Item(1)
+InductReact = RandXRange.Item(2)
 
-'Now Go To Table 9 and Get Resistance Value and Inductive Reactance Value
-ACRes = Application.WorksheetFunction.Index(ResRange, _
-        Application.WorksheetFunction.Match(User_Info_Panel.WireGauge, _
-                                            Sheets("Table 9").Range("A7:A27").Value, 0))
-InductReact = Application.WorksheetFunction.Index(ReactRange, _
-              Application.WorksheetFunction.Match(User_Info_Panel.WireGauge, _
-                                            Sheets("Table 9").Range("A7:A27").Value, 0))
 ThetaRad = Application.Acos(User_Info_Panel.PwrFctr)
 ThetaDeg = (ThetaRad * 180) / WorksheetFunction.Pi
 Zeff = ACRes * Cos(ThetaRad) + InductReact * Sin(ThetaRad)
@@ -71,39 +51,32 @@ VoltDropPerc = VoltDrop / User_Info_Panel.VoltSupply * 100
 KW = User_Info_Panel.PwrFctr * KVA
 
 '*************************************************************************************'
-'                           Place Values in Appropriate Columns                       '
+'                              Get Row to Print Data                                  '
 '*************************************************************************************'
 
-'UpdateTable(User_Info_Panel.DevDesc, User_Info_Panel.WireGauge, CndctrType, ConduitType, Amp, KVA, PF, KW, Phase, CblLen, Zeff, VoltageDrop, VoltageDropPerc, VoltSupp)
-
-    '****Get Row to print data to
-    On Error Resume Next
-    LastRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="Total", LookAt:=xlPart, LookIn:=xlFormulas, SearchOrder:=xlByRows, SearchDirection:=xlPrevious, MatchCase:=False).Row
-    If LastRow <> 0 Then
-        Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearContents
-        Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearFormats
-    End If
-    Sheets("Voltage Drop Calculator").Range("A4:L600").NumberFormat = Text
-    iRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="*", _
-                                                LookAt:=xlPart, _
-                                                LookIn:=xlValues, _
-                                                SearchOrder:=xlByRows, _
-                                                SearchDirection:=xlPrevious, _
-                                                MatchCase:=False).Row + 1
-    Sheets("Voltage Drop Calculator").Cells(iRow, 1) = User_Info_Panel.DevDesc
-    Sheets("Voltage Drop Calculator").Cells(iRow, 2) = User_Info_Panel.Amperes
-    Sheets("Voltage Drop Calculator").Cells(iRow, 3) = Round(KVA, 3)
-    Sheets("Voltage Drop Calculator").Cells(iRow, 4) = Round(User_Info_Panel.PwrFctr, 3)
-    Sheets("Voltage Drop Calculator").Cells(iRow, 5) = Round(KW, 3)
-    Sheets("Voltage Drop Calculator").Cells(iRow, 6) = "'" & User_Info_Panel.WireGauge
-    Sheets("Voltage Drop Calculator").Cells(iRow, 7) = User_Info_Panel.PhaseNum
-    Sheets("Voltage Drop Calculator").Cells(iRow, 8) = Round(User_Info_Panel.CableLen, 5)
-    Sheets("Voltage Drop Calculator").Cells(iRow, 9) = Round(Zeff, 5)
-    Sheets("Voltage Drop Calculator").Cells(iRow, 10) = Round(VoltageDrop, 3)
-    Sheets("Voltage Drop Calculator").Cells(iRow, 11) = Round(VoltageDropPerc, 3)
-    Sheets("Voltage Drop Calculator").Cells(iRow, 12) = VoltSupp
-    Sheets("Voltage Drop Calculator").Cells(iRow, 13) = User_Info_Panel.ConductorType
-    Sheets("Voltage Drop Calculator").Cells(iRow, 14) = User_Info_Panel.ConduitType
+On Error Resume Next
+LastRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="Total", LookAt:=xlPart, LookIn:=xlFormulas, SearchOrder:=xlByRows, SearchDirection:=xlPrevious, MatchCase:=False).Row
+If LastRow <> 0 Then
+    Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearContents
+    Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearFormats
+End If
+Sheets("Voltage Drop Calculator").Range("A4:L600").NumberFormat = Text
+iRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="*", _
+                                            LookAt:=xlPart, _
+                                            LookIn:=xlValues, _
+                                            SearchOrder:=xlByRows, _
+                                            SearchDirection:=xlPrevious, _
+                                            MatchCase:=False).Row + 1
+                                                
+'*************************************************************************************'
+'                       Place Values in Appropriate Columns                           '
+'*************************************************************************************'
+                                                
+Call UpdateTable(User_Info_Panel.DevDesc, User_Info_Panel.WireGauge, _
+                 User_Info_Panel.ConductType, User_Info_Panel.ConduitType, _
+                 User_Info_Panel.Amperes, KVA, User_Info_Panel.PwrFctr, KW, _
+                 User_Info_Panel.PhaseNum, User_Info_Panel.CableLen, Zeff, VoltageDrop, _
+                 VoltageDropPerc, User_Info_Panel.VoltSupply, iRow)
 
 '*************************************************************************************'
 '  Professionalize That Row Look With Borders and Centering And Adjust Column Width   '
@@ -130,61 +103,122 @@ TotalTableValues
 '           Set the Conduit and Conductors as Drop Down Lists for EOU                 '
 '*************************************************************************************'
 
-Dim WireType, PipeType, WireList, PipeList As Variant
-    
-' Read Conduit/Conductor Material Using To Get List To Display Correct One On Top
-    WireType = Sheets("Voltage Drop Calculator").Cells(iRow, "M").Value
-    PipeType = Sheets("Voltage Drop Calculator").Cells(iRow, "N").Value
-    
-    Select Case WireType    ' Set up Conductor List Array for List
-        Case "Copper":
-            WireList = Array("Copper", "Aluminum")
-        Case "Aluminum":
-            WireList = Array("Aluminum", "Copper")
-    End Select
-    Select Case PipeType    ' Set up Conduit List Array for List
-        Case "PVC":
-            PipeList = Array("PVC", "Aluminum", "Steel")
-        Case "Aluminum":
-            PipeList = Array("Aluminum", "Steel", "PVC")
-        Case "Steel":
-            PipeList = Array("Steel", "PVC", "Aluminum")
-    End Select
-    
-    With Sheets("Voltage Drop Calculator").Cells(iRow, "M").Validation
-        .Delete
-        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:= _
-                                    xlBetween, Formula1:=Join(WireList, ",")
-        .IgnoreBlank = True
-        .InCellDropdown = True
-        .InputTitle = ""
-        .ErrorTitle = ""
-        .InputMessage = ""
-        .ErrorMessage = ""
-        .ShowInput = True
-        .ShowError = True
-    End With
+Call MakeCondDropDownList(User_Info_Panel.ConductType, User_Info_Panel.ConduitType, iRow)
 
-    With Sheets("Voltage Drop Calculator").Cells(iRow, "N").Validation
-        .Delete
-        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:= _
-                                    xlBetween, Formula1:=Join(PipeList, ",")
-        .IgnoreBlank = True
-        .InCellDropdown = True
-        .InputTitle = ""
-        .ErrorTitle = ""
-        .InputMessage = ""
-        .ErrorMessage = ""
-        .ShowInput = True
-        .ShowError = True
-    End With
+End Sub
+'-------------------------------------------------------------------------------------'
+'                      Clear the Worksheet for New Calculations                       '
+'-------------------------------------------------------------------------------------'
+Private Sub ClearSheetVD_Click()
+    Sheets("Voltage Drop Calculator").Range("A1:Z900").ClearContents
+    Sheets("Voltage Drop Calculator").Range("A1:Z900").ClearFormats
+End Sub
 
+'-------------------------------------------------------------------------------------'
+'  This Function Will Take a Variant Input and Output A True or False if Its Number   '
+'-------------------------------------------------------------------------------------'
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+
+Dim ClmChng, RowChng As Variant
+Dim iRow As Long
+Dim RandXl, RowVals As Collection
+Dim PostChanges As Integer
+
+' De-Activate Flag so only needed changes are made
+PostChanges = 0
+
+' Get the Cell changed Target.Address = $Column$Row on the sheet and pull the column letter off
+ClmChng = Mid$(Target.Address, 2, 1)
+RowChng = Mid$(Target.Address, 4, 1)
+
+' According to column change assessed check if in data set or outside
+On Error Resume Next
+LastRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="Total", _
+                                                       LookAt:=xlPart, _
+                                                       LookIn:=xlFormulas, _
+                                                       SearchOrder:=xlByRows, _
+                                                       SearchDirection:=xlPrevious, _
+                                                       MatchCase:=False).Row
+If LastRow <> 0 Then
+    Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearContents
+    Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearFormats
+End If
+iRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="", _
+                                            After:=Cells(2, 7), _
+                                            LookAt:=xlWhole, _
+                                            LookIn:=xlValues, _
+                                            SearchOrder:=xlByRows, _
+                                            SearchDirection:=xlNext, _
+                                            MatchCase:=False).Row + 1
+
+' Changes made in valid spaces so update and change other cells accordingly
+Select Case ClmChng
+        Case "A":   '   Device Description - Do Nothing
+        Case "B" Or "D" Or "F" Or "G" Or "H" Or "L" Or "M" Or "N":   '   Current Change - Re-Calculate and Update Table"
+                    PostChanges = 1 ' Activate Flag to edit table values
+                    
+                    Set RowVals = ReadRowChanged(RowChng)  ' Go Get That Row's Values
+                    If RowVals.Count <> 8 Then
+                        MsgBox ("**Err: Incorrect Value in Cell. Please Fix Highlighted Cell.")
+                        Exit Sub
+                    Else ' Unload Collection
+                        DevDesc = RowVals.Item(1)   ' Var(1): Device Description
+                        Amps = RowVals.Item(2)      ' Var(2): Amps
+                        PF = RowVals.Item(3)        ' Var(3): Power Factor
+                        Gauge = RowVals.Item(4)     ' Var(4): Wire Gauge
+                        Phases = RowVals.Item(5)    ' Var(5): Number of Phases
+                        CblLen = RowVals.Item(6)    ' Var(6): Est. Cable Length
+                        Vsupp = RowVals.Item(7)     ' Var(7): Supply Voltage
+                        WireType = RowVals.Item(8)  ' Var(8): Conduit Type
+                        PipeType = RowVals.Item(9)  ' Var(9): Conductor Type
+                    End If
+                    
+                    Set RandXl = GetXlandR(ConduitType, _
+                                           ConductType)    'Get Resistance and Reactance
+                    ACRes = RandXRange.Item(1)
+                    InductReact = RandXRange.Item(2)
+                    
+                    ThetaRad = Application.Acos(PF)
+                    ThetaDeg = (ThetaRad * 180) / WorksheetFunction.Pi
+                    Zeff = ACRes * Cos(ThetaRad) + InductReact * Sin(ThetaRad)
+                    Zcond = (CblLen / 1000) * Zeff
+                    If Phases = 1 Then    '******* Single Phase
+                        KVA = Amps * Vsupp / 1000
+                        VoltDrop = Amps * 2 * Zcond
+                    Else                    '******* Three Phae
+                        KVA = Amps * Vsupp * Sqr(3) / 1000
+                        VoltDrop = Amps * Sqr(3) * Zcond
+                    End If
+                    VoltDropPerc = VoltDrop / Vsupp * 100
+                    KW = PF * KVA
+                    
+                    Call UpdateTable(DevDesc, Gauge, Amps, KVA, PF, KW, _
+                                     Phases, CblLen, Zeff, VoltageDrop, _
+                                     VoltageDropPerc, Vsupp, iRow)
+                    Call MakeCondDropDownList(WireType, PipeType, iRow)
+                    TotalTableValues
+                    
+        Case "C":   '   KVA Change - ?? This should not happen. Post Err ??
+        'Case "D":   '   Power Factor Change - Re-Calculate and Update Table
+        Case "E":   '   KW Change - ?? This should not happen. Post Err ??
+        'Case "F":   '   Wire Guage Size - Validate Input and Re-Calculate and Update Table
+        'Case "G":   '   Phase Number Change - Re-Calculate and Update Table
+        'Case "H":   '   Cable Length Change - Re-Calculate and Update Table
+        Case "I":   '   Zeff Change - ?? This should not happen. Post Err ??
+        Case "J":   '   Calculated Voltage Drop Change ?? This should not happen. Post Err ??
+        Case "K":   '   Calculated Voltage Drop % Change ?? This should not happen. Post Err ??
+        'Case "L":   '   Supply Voltage Change - Re-Calculate and Update Table
+        'Case "M":   '   Conductor Change - Re-Calculate and Update Table
+        'Case "N":   '   Conduit Change - Re-Calculate and Update Table
+    End Select
 End Sub
 
 '-------------------------------------------------------------------------------------'
 '---------This Funciton Set the Column Title Block For the Voltage Drop Table---------'
 '-------------------------------------------------------------------------------------'
-Function SetTitleBlock()
+
+Public Function SetTitleBlock()
 
 '*************************************************************************************'
 '                      Variables and Declaration Constants                            '
@@ -326,14 +360,6 @@ Loop While GETOUT = 0
 End Function
 
 '-------------------------------------------------------------------------------------'
-'                      Clear the Worksheet for New Calculations                       '
-'-------------------------------------------------------------------------------------'
-Private Sub ClearSheetVD_Click()
-    Sheets("Voltage Drop Calculator").Range("A1:Z900").ClearContents
-    Sheets("Voltage Drop Calculator").Range("A1:Z900").ClearFormats
-End Sub
-
-'-------------------------------------------------------------------------------------'
 '  This Function Will Take a Variant Input and Output A True or False if Its Number   '
 '-------------------------------------------------------------------------------------'
 
@@ -348,23 +374,9 @@ End Function
 '             This Function Will Place Passed Values into the Display Tables          '
 '-------------------------------------------------------------------------------------'
 
-Function UpdateTable(ByRef DevDescr, Gauge, CndctrType, ConduitType As String, Amp, KVA, _
-                     PF, KW, Phase, CblLen, Zeff, VoltageDrop, VoltageDropPerc, VoltSupp As Double)
+Public Function UpdateTable(ByVal DevDescr, Gauge As String, Amp, KVA, PF, KW, Phase, CblLen, _
+                            Zeff, VoltageDrop, VoltageDropPerc, VoltSupp As Double, iRow As Long)
 
-    '****Get Row to print data to
-    On Error Resume Next
-    LastRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="Total", LookAt:=xlPart, LookIn:=xlFormulas, SearchOrder:=xlByRows, SearchDirection:=xlPrevious, MatchCase:=False).Row
-    If LastRow <> 0 Then
-        Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearContents
-        Sheets("Voltage Drop Calculator").Range(Cells(LastRow - 6, 3), Cells(LastRow, 3)).ClearFormats
-    End If
-    Sheets("Voltage Drop Calculator").Range("A4:L600").NumberFormat = Text
-    iRow = Sheets("Voltage Drop Calculator").Cells.Find(What:="*", _
-                                                LookAt:=xlPart, _
-                                                LookIn:=xlValues, _
-                                                SearchOrder:=xlByRows, _
-                                                SearchDirection:=xlPrevious, _
-                                                MatchCase:=False).Row + 1
     Sheets("Voltage Drop Calculator").Cells(iRow, 1) = DevDescr
     Sheets("Voltage Drop Calculator").Cells(iRow, 2) = User_Info_Panel.Amperes
     Sheets("Voltage Drop Calculator").Cells(iRow, 3) = Round(KVA, 3)
@@ -377,33 +389,197 @@ Function UpdateTable(ByRef DevDescr, Gauge, CndctrType, ConduitType As String, A
     Sheets("Voltage Drop Calculator").Cells(iRow, 10) = Round(VoltageDrop, 3)
     Sheets("Voltage Drop Calculator").Cells(iRow, 11) = Round(VoltageDropPerc, 3)
     Sheets("Voltage Drop Calculator").Cells(iRow, 12) = VoltSupp
-    Sheets("Voltage Drop Calculator").Cells(iRow, 13) = CndctrType
-    Sheets("Voltage Drop Calculator").Cells(iRow, 14) = ConduitType
 
 End Function
 
 '-------------------------------------------------------------------------------------'
-'  This Function Will Take a Variant Input and Output A True or False if Its Number   '
+'-------This Funciton Generates the Conductor and Conduit Dropdown List Cells---------'
 '-------------------------------------------------------------------------------------'
 
-Private Sub Worksheet_Change(ByVal Target As Range)
-Dim ColChanged As String
-    Target.Address
-    Select Case ColChanged
-        Case 1:   '   Device Description - Do Nothing
-        Case 2:   '   Current Change - Re-Calculate and Update Table
-            MsgBox ("Changed Current")
-        Case "C":   '   KVA Change - ?? This should not happen. Post Err ??
-        Case "D":   '   Power Factor Change - Re-Calculate and Update Table
-        Case "E":   '   KW Change - ?? This should not happen. Post Err ??
-        Case "F":   '   Wire Guage Size - Validate Input and Re-Calculate and Update Table
-        Case "G":   '   Phase Number Change - Re-Calculate and Update Table
-        Case "H":   '   Cable Length Change - Re-Calculate and Update Table
-        Case "I":   '   Zeff Change - ?? This should not happen. Post Err ??
-        Case "J":   '   Calculated Voltage Drop Change ?? This should not happen. Post Err ??
-        Case "K":   '   Calculated Voltage Drop % Change ?? This should not happen. Post Err ??
-        Case "L":   '   Supply Voltage Change - Re-Calculate and Update Table
-        Case "M":   '   Conductor Change - Re-Calculate and Update Table
-        Case "N":   '   Conduit Change - Re-Calculate and Update Table
+Public Function MakeCondDropDownList(ByVal WireType, PipeType As Variant, iRow As Long)
+
+Dim WireList, PipeList As Variant
+
+' Read Conduit/Conductor Material Using To Get List To Display Correct One On Top
+    WireType = Sheets("Voltage Drop Calculator").Cells(iRow, "M").Value
+    PipeType = Sheets("Voltage Drop Calculator").Cells(iRow, "N").Value
+    
+    Select Case WireType    ' Set up Conductor List Array for List
+        Case "Copper":
+            WireList = Array("Copper", "Aluminum")
+        Case "Aluminum":
+            WireList = Array("Aluminum", "Copper")
     End Select
-End Sub
+    Select Case PipeType    ' Set up Conduit List Array for List
+        Case "PVC":
+            PipeList = Array("PVC", "Aluminum", "Steel")
+        Case "Aluminum":
+            PipeList = Array("Aluminum", "Steel", "PVC")
+        Case "Steel":
+            PipeList = Array("Steel", "PVC", "Aluminum")
+    End Select
+    
+    ' Make Conduit drop down list
+    With Sheets("Voltage Drop Calculator").Cells(iRow, "M").Validation
+        .Delete ' delete current contents
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:= _
+                                    xlBetween, Formula1:=Join(WireList, ",")    ' Add Dropdown
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .InputTitle = ""
+        .ErrorTitle = ""
+        .InputMessage = ""
+        .ErrorMessage = ""
+        .ShowInput = True
+        .ShowError = True
+    End With
+    
+    ' Make Conductor drop down list
+    With Sheets("Voltage Drop Calculator").Cells(iRow, "N").Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:= _
+                                    xlBetween, Formula1:=Join(PipeList, ",")
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .InputTitle = ""
+        .ErrorTitle = ""
+        .InputMessage = ""
+        .ErrorMessage = ""
+        .ShowInput = True
+        .ShowError = True
+    End With
+End Function
+
+'-------------------------------------------------------------------------------------'
+'This Function Gets the Range Values to Serch in Table 9 for Resistance and Reactance '
+'-------------------------------------------------------------------------------------'
+
+Public Function GetXlandR(ByVal ConduitType, ConductType As String) As Collection
+
+Dim ResRange, ReactRange As Range
+Dim Var As Collection
+
+Set Var = New Collection
+
+'****Get AC Resistance and Inductive Reactiance From NEC 2017 Table 9
+    Select Case ConduitType
+        Case "PVC":         'Use PVC Column From Table 9
+            Set ResRange = Sheets("Table 9").Range("B7:B27")
+            If ConductType = "Copper" Then
+                Set ReactRange = Sheets("Table 9").Range("D7:D27")
+            Else
+                Set ReactRange = Sheets("Table 9").Range("G7:G27")
+            End If
+        Case "Aluminum":    'Use Aluminum Column From Table 9
+            Set ResRange = Sheets("Table 9").Range("B7:B27")
+            If ConductType = "Copper" Then
+                Set ReactRange = Sheets("Table 9").Range("E7:E27")
+            Else:
+                Set ReactRange = Sheets("Table 9").Range("H7:H27")
+            End If
+        Case "Steel":       'Use Steel Column From Table 9
+            Set ResRange = Sheets("Table 9").Range("C7:C27")
+            If ConductType = "Copper" Then
+                Set ReactRange = Sheets("Table 9").Range("F7:F27")
+            Else:
+                Set ReactRange = Sheets("Table 9").Range("I7:I27")
+            End If
+    End Select
+
+'Now Go To Table 9 and Get Resistance Value and Inductive Reactance Value
+Var.Add = Application.WorksheetFunction.Index(ResRange, _
+        Application.WorksheetFunction.Match(User_Info_Panel.WireGauge, _
+                                            Sheets("Table 9").Range("A7:A27").Value, 0))
+Var.Add = Application.WorksheetFunction.Index(ReactRange, _
+              Application.WorksheetFunction.Match(User_Info_Panel.WireGauge, _
+                                            Sheets("Table 9").Range("A7:A27").Value, 0))
+
+' Set collection 1:ResVal 2:ReactVal
+Set GetXlandR = Var
+
+End Function
+
+Public Function ReadRowChanged(iRow) As Collection
+
+Dim Var As Collection
+Set Var = New Collection
+    ' Var(1): Device Description
+    ' Var(2): Amps
+    ' Var(3): Power Factor
+    ' Var(4): Wire Gauge
+    ' Var(5): Number of Phases
+    ' Var(6): Est. Cable Length
+    ' Var(7): Supply Voltage
+    ' Var(8): Conduit Type
+    ' Var(9): Conductor Type
+    
+    Var.Add = Sheets("Voltage Drop Calculator").Cells(iRow, 1).Value    ' Get Device Description
+
+    Amps = Sheets("Voltage Drop Calculator").Cells(iRow, 2).Value
+    If CheckIfNum(Amps) = False Then
+        Sheets("Voltage Drop Calculator").Cells(iRow, 2).Interior.Color = RGB(211, 100, 100)
+        Exit Function
+    Else
+        Var.Add = CDbl(Amps)
+        Sheets("Voltage Drop Calculator").Cells(iRow, 2).Interior.Color = xlNone
+    End If
+    
+    WireGauge = Sheets("Voltage Drop Calculator").Cells(iRow, 6).Text
+    If VBA.IsError(Application.Match(WireGauge, Sheets("Table 9").Range("A7:A27").Value, 0)) Then
+        Sheets("Voltage Drop Calculator").Cells(iRow, 6).Interior.Color = RGB(211, 100, 100)
+        MsgBox ("**Err: Invalid Motor Lead Gauge Size. Please Fix And Try Again.")
+        Exit Function
+    Else
+        Sheets("Voltage Drop Calculator").Cells(iRow, 6).Interior.Color = xlNone
+        Var.Add = WireGuage
+    End If
+    
+    NumPhase = Sheets("Voltage Drop Calculator").Cells(iRow, 7).Value
+    If CheckIfNum(NumPhase) = False Then
+        Sheets("Voltage Drop Calculator").Cells(iRow, 7).Interior.Color = RGB(211, 100, 100)
+        Exit Function
+    Else
+        Var.Add = CDbl(NumPhase)
+        Sheets("Voltage Drop Calculator").Cells(iRow, 7).Interior.Color = xlNone
+    End If
+    
+    CblLen = Sheets("Voltage Drop Calculator").Cells(iRow, 8).Value
+    If CheckIfNum(CblLen) = False Then
+        Sheets("Voltage Drop Calculator").Cells(iRow, 8).Interior.Color = RGB(211, 100, 100)
+        Exit Function
+    Else
+        Var.Add = CDbl(CblLen)
+        Sheets("Voltage Drop Calculator").Cells(iRow, 8).Interior.Color = xlNone
+    End If
+    
+    VSupply = Sheets("Voltage Drop Calculator").Cells(iRow, 12).Value
+    If CheckIfNum(VSupply) = False Then
+        Sheets("Voltage Drop Calculator").Cells(iRow, 12).Interior.Color = RGB(211, 100, 100)
+        Exit Function
+    Else
+        Var.Add = CDbl(VSupply)
+        Sheets("Voltage Drop Calculator").Cells(iRow, 12).Interior.Color = xlNone
+    End If
+
+    ConductorType = Sheets("Voltage Drop Calculator").Cells(iRow, 13).Text
+    If ConduitType <> "Copper" And ConduitType <> "Aluminum" Then
+        MsgBox ("**Err: Invalid Conduit Type. Please Fix and Try Again.")
+        Sheets("Voltage Drop Calculator").Cells(iRow, 13).Interior.Color = RGB(211, 100, 100)
+        Exit Function
+    Else
+        Var.Add = ConductorType
+        Sheets("Voltage Drop Calculator").Cells(iRow, 13).Interior.Color = xlNone
+    End If
+
+    ConduitType = Sheets("Voltage Drop Calculator").Cells(iRow, 14).Text
+    If ConduitType <> "PVC" And ConduitType <> "Aluminum" And ConduitType <> "Steel" Then
+        MsgBox ("**Err: Invalid Conduit Type. Please Fix and Try Again.")
+        Sheets("Voltage Drop Calculator").Cells(iRow, 14).Interior.Color = RGB(211, 100, 100)
+        Exit Function
+    Else
+        Var.Add = ConduitType
+        Sheets("Voltage Drop Calculator").Cells(iRow, 13).Interior.Color = xlNone
+    End If
+
+End Function
+

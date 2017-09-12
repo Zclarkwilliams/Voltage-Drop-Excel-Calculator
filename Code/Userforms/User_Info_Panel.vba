@@ -1,16 +1,14 @@
 '
 ' Author: Zachary Clark_Williams
-' Last Edited: 08-31-2017
+' Last Edited: 09-12-2017
 '
 ' Excel Voltage Drop Calculator
 ' 
 ' This code is to the main calculator userform used in Main_Rev1.vba.
 '
-
-
-
 Public Amperes, CableLen, PwrFctr, VoltSupply, PhaseNum As Double
 Public DevDesc, ConductType, ConduitType, WireGauge As String
+Public FLAG_XedOut As Boolean
 
 Private Sub Amps_AfterUpdate()
 ' Check to if Number Entered, Not Char or Other or Nothing
@@ -162,7 +160,14 @@ Public Sub User_Info_Panel_Initialize()
     User_Info_Panel.SinglePhase.Value = False
     User_Info_Panel.ThreePhase.Value = False
     User_Info_Panel.VoltSupp.Value = "(V)"
+    FLAG_XedOut = False
 End Sub
+
+' User Hit the "X" button.
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    FLAG_XedOut = True
+End Sub
+
 
 Function CheckIfNum(ByVal NumCheck As Variant) As Boolean
     If IsNumeric(NumCheck) = False Or NumCheck = vbNullString Then 'Check if a number
